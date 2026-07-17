@@ -47,15 +47,11 @@ function reserve(date, period){
 
 let name =
 prompt(
-"Kies naam:\n\n"
-+
-familyMembers.join("\n")
-);
+"Vul je naam in:");
 
 
 
-if(!name ||
-!familyMembers.includes(name))
+if(!name || !name.trim())
 {
 alert("Ongeldige naam");
 return;
