@@ -1,5 +1,7 @@
 const calendar = document.getElementById("calendar");
 let reservations = {};
+// Publicly shared Drive file (direct download). Replaced by your provided link.
+const REMOTE_JSON_URL = 'https://drive.google.com/uc?export=download&id=1dKzIuYtcQO6AaSGnWlcyEWicemQtVplB';
 
 function isAuthenticated() {
     return sessionStorage.getItem('authenticated') === 'true';
@@ -11,16 +13,22 @@ function generateId() {
 }
 
 async function loadSample() {
-    try {
-        const resp = await fetch('data/reservations.json');
-        if (!resp.ok) throw new Error('Kan sample niet laden');
-        const data = await resp.json();
-        // support both {reservations:{}} and plain object
-        reservations = data.reservations || data || {};
-    } catch (err) {
-        console.error(err);
-        alert('Kon voorbeelddata niet laden.');
+    // Try remote Drive URL first, then fallback to bundled file
+    const candidates = [REMOTE_JSON_URL, 'data/reservations.json'];
+    for (const url of candidates) {
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('Niet OK: ' + resp.status);
+            const data = await resp.json();
+            reservations = data.reservations || data || {};
+            return;
+        } catch (err) {
+            console.warn('Kon niet laden van', url, err.message);
+            // try next
+        }
     }
+    // All fell through
+    console.error('Kon geen voorbeelddata laden vanaf remote of lokale bron.');
 }
 
 async function openJsonFile() {
@@ -67,7 +75,8 @@ function render() {
     ];
 
     const auth = isAuthenticated();
-    document.getElementById('authStatus').textContent = auth ? 'Ingelogd (bewerken toegestaan)' : 'Alleen bekijken';
+    const authEl = document.getElementById('authStatus');
+    if (authEl) authEl.textContent = auth ? 'Ingelogd (bewerken toegestaan)' : 'Alleen bekijken';
 
     for (let day = 1; day <= 31; day++) {
         const date = `2026-07-${String(day).padStart(2, '0')}`;
@@ -146,10 +155,14 @@ window.reserve = reserve;
 window.removeReservation = removeReservation;
 
 (function init() {
-    document.getElementById('openFileBtn').addEventListener('click', openJsonFile);
-    document.getElementById('loadSampleBtn').addEventListener('click', async () => { await loadSample(); render(); });
-    document.getElementById('saveFileBtn').addEventListener('click', saveReservations);
-    document.getElementById('logoutBtn').addEventListener('click', () => { sessionStorage.removeItem('authenticated'); location.reload(); });
+    const openBtn = document.getElementById('openFileBtn');
+    if (openBtn) openBtn.addEventListener('click', openJsonFile);
+    const loadBtn = document.getElementById('loadSampleBtn');
+    if (loadBtn) loadBtn.addEventListener('click', async () => { await loadSample(); render(); });
+    const saveBtn = document.getElementById('saveFileBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveReservations);
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => { sessionStorage.removeItem('authenticated'); location.reload(); });
 
     // Try to load sample on first open so viewers see something
     loadSample().then(render).catch(err => { console.log(err); render(); });
