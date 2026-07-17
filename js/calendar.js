@@ -1,155 +1,81 @@
-if(
+if (
     sessionStorage.getItem("authenticated")
     !== "true"
-){
-
-    window.location.href="index.html";
-
+) {
+    window.location.href = "index.html";
 }
 
+const calendar = document.getElementById("calendar");
+let reservations = {};
 
-const familyMembers = [
-    "Jan",
-    "Piet",
-    "Oma",
-    "Maria"
-];
-
-
-
-const calendar =
-document.getElementById("calendar");
-
-
-
-const reservations =
-JSON.parse(
-localStorage.getItem("reservations")
-)
-||
-{};
-
-const archivedReservations =
-JSON.parse(
-localStorage.getItem("archivedReservations")
-)
-||
-{};
-
-
-
-function save(){
-
-localStorage.setItem(
-"reservations",
-JSON.stringify(reservations)
-);
-localStorage.setItem(
-"archivedReservations",
-JSON.stringify(archivedReservations)
-);
-
-}
-
-
-function archivePastDates(){
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    for (let day = 1; day <= 31; day++) {
-        const date = `2026-07-${String(day).padStart(2, '0')}`;
-        const dayDate = new Date(date);
-        dayDate.setHours(0,0,0,0);
-
-        if (dayDate < today) {
-            ["middag", "avond"].forEach(period => {
-                const key = `${date}-${period}`;
-                if (reservations[key] && reservations[key].length) {
-                    if (!archivedReservations[key]) {
-                        archivedReservations[key] = [];
-                    }
-                    archivedReservations[key] = archivedReservations[key].concat(reservations[key]);
-                    delete reservations[key];
-                }
-            });
+async function loadReservations() {
+    try {
+        const response = await fetch('/api/reservations');
+        if (!response.ok) {
+            throw new Error('Kan reserveringen niet laden');
         }
+        const data = await response.json();
+        reservations = data.reservations || {};
+    } catch (error) {
+        console.error(error);
+        alert('Er is een fout opgetreden bij het laden van reserveringen.');
     }
-
-    save();
 }
 
-
-function reserve(date, period){
-
-
-let name =
-prompt(
-"Vul je naam in:");
-
-
-
-if(!name || !name.trim())
-{
-alert("Ongeldige naam");
-return;
-}
-
-
-
-const key =
-`${date}-${period}`;
-
-
-
-if(!reservations[key])
-{
-
-reservations[key]=[];
-
-}
-
-
-
-if(reservations[key].length >=2)
-{
-
-alert(
-"Dit tijdstip is vol"
-);
-
-return;
-
-}
-
-
-
-reservations[key].push(name);
-
-
-save();
-
-render();
-
-
-}
-
-
-function removeReservation(date, period, index){
-    const key = `${date}-${period}`;
-    const list = reservations[key];
-    if (!list || index < 0 || index >= list.length) {
+async function reserve(date, period) {
+    const name = prompt('Vul je naam in:');
+    if (!name || !name.trim()) {
+        alert('Ongeldige naam');
         return;
     }
-    list.splice(index, 1);
-    if (list.length === 0) {
-        delete reservations[key];
+
+    try {
+        const response = await fetch('/api/reservations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, period, name: name.trim() })
+        });
+
+        if (response.status === 409) {
+            alert('Dit tijdstip is vol');
+            return;
+        }
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Kon reservering niet maken');
+        }
+
+        await loadReservations();
+        render();
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'Er is een fout opgetreden bij het reserveren.');
     }
-    save();
-    render();
 }
 
+async function removeReservation(date, period, index) {
+    try {
+        const response = await fetch('/api/reservations', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, period, index })
+        });
 
-function escapeHtml(text){
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Kon reservering niet verwijderen');
+        }
+
+        await loadReservations();
+        render();
+    } catch (error) {
+        console.error(error);
+        alert(error.message || 'Er is een fout opgetreden bij het verwijderen van de reservering.');
+    }
+}
+
+function escapeHtml(text) {
     return text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -158,146 +84,73 @@ function escapeHtml(text){
         .replace(/'/g, '&#39;');
 }
 
+function render() {
+    calendar.innerHTML = '';
 
-function render(){
+    const weekdayNames = [
+        'Zondag',
+        'Maandag',
+        'Dinsdag',
+        'Woensdag',
+        'Donderdag',
+        'Vrijdag',
+        'Zaterdag'
+    ];
 
+    for (let day = 1; day <= 31; day++) {
+        const date = `2026-07-${String(day).padStart(2, '0')}`;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dayDate = new Date(date);
+        dayDate.setHours(0, 0, 0, 0);
 
-archivePastDates();
+        if (dayDate < today) {
+            continue;
+        }
 
-calendar.innerHTML="";
+        const weekday = weekdayNames[dayDate.getDay()];
+        const middag = reservations[`${date}-middag`] || [];
+        const avond = reservations[`${date}-avond`] || [];
 
+        const middagHtml = middag.length
+            ? middag.map((name, index) =>
+                `<div class="reservation-line">
+                    <span>${escapeHtml(name)}</span>
+                    <button class="remove-button" onclick="removeReservation('${date}','middag',${index})">Verwijder</button>
+                </div>`
+              ).join('')
+            : 'Vrij';
 
-const weekdayNames = [
-    'Zondag',
-    'Maandag',
-    'Dinsdag',
-    'Woensdag',
-    'Donderdag',
-    'Vrijdag',
-    'Zaterdag'
-];
+        const avondHtml = avond.length
+            ? avond.map((name, index) =>
+                `<div class="reservation-line">
+                    <span>${escapeHtml(name)}</span>
+                    <button class="remove-button" onclick="removeReservation('${date}','avond',${index})">Verwijder</button>
+                </div>`
+              ).join('')
+            : 'Vrij';
 
-for(
-let day=1;
-day<=31;
-day++
-){
-
-
-let date =
-`2026-07-${String(day).padStart(2, '0')}`;
-
-const today = new Date();
-today.setHours(0,0,0,0);
-const dayDate = new Date(date);
-dayDate.setHours(0,0,0,0);
-
-if(dayDate < today){
-    continue;
+        calendar.innerHTML += `
+            <div class="day">
+                <h2>${weekday} ${day} juli</h2>
+                <div class="block">
+                    <h3>☀ Middag — 14:00 tot 15:00</h3>
+                    <div class="reservation-list">${middagHtml}</div>
+                    <button onclick="reserve('${date}','middag')">Reserveer</button>
+                </div>
+                <div class="block">
+                    <h3>🌙 Avond — 18:30 tot 20:00</h3>
+                    <div class="reservation-list">${avondHtml}</div>
+                    <button onclick="reserve('${date}','avond')">Reserveer</button>
+                </div>
+            </div>`;
+    }
 }
-
-const weekday = weekdayNames[dayDate.getDay()];
-
-
-const middag =
-reservations[
-`${date}-middag`
-] || [];
-
-
-const avond =
-reservations[
-`${date}-avond`
-] || [];
-
-
-const middagHtml = middag.length
-    ? middag.map((name, index) =>
-        `<div class="reservation-line">
-            <span>${escapeHtml(name)}</span>
-            <button class="remove-button" onclick="removeReservation('${date}','middag',${index})">Verwijder</button>
-        </div>`
-      ).join('')
-    : 'Vrij';
-
-const avondHtml = avond.length
-    ? avond.map((name, index) =>
-        `<div class="reservation-line">
-            <span>${escapeHtml(name)}</span>
-            <button class="remove-button" onclick="removeReservation('${date}','avond',${index})">Verwijder</button>
-        </div>`
-      ).join('')
-    : 'Vrij';
-
-calendar.innerHTML += `
-
-
-<div class="day">
-
-
-<h2>
-${weekday} ${day} juli
-</h2>
-
-
-<div class="block">
-
-<h3>
-☀ Middag — 14:00 tot 15:00
-</h3>
-
-
-<div class="reservation-list">
-${middagHtml}
-</div>
-
-
-<button onclick="reserve('${date}','middag')">
-
-Reserveer
-
-</button>
-
-
-</div>
-
-
-<div class="block">
-
-<h3>
-🌙 Avond — 18:30 tot 20:00
-</h3>
-
-
-<div class="reservation-list">
-${avondHtml}
-</div>
-
-
-<button onclick="reserve('${date}','avond')">
-
-Reserveer
-
-</button>
-
-
-</div>
-
-
-</div>
-
-
-`;
-
-
-}
-
-
-}
-
 
 window.reserve = reserve;
 window.removeReservation = removeReservation;
 
-
-render();
+(async function () {
+    await loadReservations();
+    render();
+})();
