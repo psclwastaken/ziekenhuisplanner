@@ -167,6 +167,16 @@ archivePastDates();
 calendar.innerHTML="";
 
 
+const weekdayNames = [
+    'Zondag',
+    'Maandag',
+    'Dinsdag',
+    'Woensdag',
+    'Donderdag',
+    'Vrijdag',
+    'Zaterdag'
+];
+
 for(
 let day=1;
 day<=31;
@@ -185,6 +195,8 @@ dayDate.setHours(0,0,0,0);
 if(dayDate < today){
     continue;
 }
+
+const weekday = weekdayNames[dayDate.getDay()];
 
 
 const middag =
@@ -224,7 +236,7 @@ calendar.innerHTML += `
 
 
 <h2>
-${day} juli
+${weekday} ${day} juli
 </h2>
 
 
