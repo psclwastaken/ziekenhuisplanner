@@ -32,6 +32,10 @@
         Open agenda
     </button>
 
+    <button onclick="(function(){ sessionStorage.removeItem('authenticated'); window.location.href='calendar.html'; })()">
+        Bekijk zonder wachtwoord
+    </button>
+
 
     <p id="error"></p>
 

@@ -14,6 +14,8 @@ content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet"
 href="css/style.css">
 
+<script src="js/fileStorage.js" defer></script>
+<script src="js/login.js" defer></script>
 <script src="js/calendar.js" defer></script>
 
 </head>
@@ -28,6 +30,13 @@ href="css/style.css">
 🏥 Ziekenhuis bezoek
 </h1>
 
+<div class="toolbar">
+	<button id="openFileBtn">Open JSON bestand</button>
+	<button id="loadSampleBtn">Laad voorbeeld</button>
+	<button id="saveFileBtn">Opslaan wijzigingen</button>
+	<span id="authStatus"></span>
+	<button id="logoutBtn">Uitloggen</button>
+</div>
 
 <div id="calendar"></div>
 

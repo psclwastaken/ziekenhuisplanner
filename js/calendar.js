@@ -1,82 +1,51 @@
-if (
-    sessionStorage.getItem("authenticated")
-    !== "true"
-) {
-    window.location.href = "index.html";
-}
-
 const calendar = document.getElementById("calendar");
 let reservations = {};
 
-async function loadReservations() {
+function isAuthenticated() {
+    return sessionStorage.getItem('authenticated') === 'true';
+}
+
+function generateId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+}
+
+async function loadSample() {
     try {
-        const response = await fetch('/api/reservations');
-        if (!response.ok) {
-            throw new Error('Kan reserveringen niet laden');
-        }
-        const data = await response.json();
-        reservations = data.reservations || {};
-    } catch (error) {
-        console.error(error);
-        alert('Er is een fout opgetreden bij het laden van reserveringen.');
+        const resp = await fetch('data/reservations.json');
+        if (!resp.ok) throw new Error('Kan sample niet laden');
+        const data = await resp.json();
+        // support both {reservations:{}} and plain object
+        reservations = data.reservations || data || {};
+    } catch (err) {
+        console.error(err);
+        alert('Kon voorbeelddata niet laden.');
     }
 }
 
-async function reserve(date, period) {
-    const name = prompt('Vul je naam in:');
-    if (!name || !name.trim()) {
-        alert('Ongeldige naam');
-        return;
-    }
-
+async function openJsonFile() {
     try {
-        const response = await fetch('/api/reservations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, period, name: name.trim() })
-        });
-
-        if (response.status === 409) {
-            alert('Dit tijdstip is vol');
-            return;
-        }
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Kon reservering niet maken');
-        }
-
-        await loadReservations();
+        const data = await fileStorage.openFile();
+        reservations = data.reservations || data || {};
         render();
-    } catch (error) {
-        console.error(error);
-        alert(error.message || 'Er is een fout opgetreden bij het reserveren.');
+    } catch (err) {
+        console.error(err);
+        alert(err.message || 'Kon bestand niet openen');
     }
 }
 
-async function removeReservation(date, period, index) {
+async function saveReservations() {
     try {
-        const response = await fetch('/api/reservations', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, period, index })
-        });
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Kon reservering niet verwijderen');
-        }
-
-        await loadReservations();
-        render();
-    } catch (error) {
-        console.error(error);
-        alert(error.message || 'Er is een fout opgetreden bij het verwijderen van de reservering.');
+        await fileStorage.saveFile({ reservations });
+        alert('Opgeslagen');
+    } catch (err) {
+        console.error(err);
+        alert('Opslaan mislukt: ' + (err.message || ''));
     }
 }
 
 function escapeHtml(text) {
-    return text
+    return String(text)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -97,6 +66,9 @@ function render() {
         'Zaterdag'
     ];
 
+    const auth = isAuthenticated();
+    document.getElementById('authStatus').textContent = auth ? 'Ingelogd (bewerken toegestaan)' : 'Alleen bekijken';
+
     for (let day = 1; day <= 31; day++) {
         const date = `2026-07-${String(day).padStart(2, '0')}`;
         const today = new Date();
@@ -104,28 +76,29 @@ function render() {
         const dayDate = new Date(date);
         dayDate.setHours(0, 0, 0, 0);
 
-        if (dayDate < today) {
-            continue;
-        }
+        if (dayDate < today) continue;
 
         const weekday = weekdayNames[dayDate.getDay()];
-        const middag = reservations[`${date}-middag`] || [];
-        const avond = reservations[`${date}-avond`] || [];
+        const middag = (reservations[`${date}-middag`] || []).map(item => typeof item === 'string' ? { id: generateId(), name: item } : item);
+        const avond = (reservations[`${date}-avond`] || []).map(item => typeof item === 'string' ? { id: generateId(), name: item } : item);
+
+        reservations[`${date}-middag`] = middag;
+        reservations[`${date}-avond`] = avond;
 
         const middagHtml = middag.length
-            ? middag.map((name, index) =>
+            ? middag.map(res =>
                 `<div class="reservation-line">
-                    <span>${escapeHtml(name)}</span>
-                    <button class="remove-button" onclick="removeReservation('${date}','middag',${index})">Verwijder</button>
+                    <span>${escapeHtml(res.name)}</span>
+                    ${auth ? `<button class="remove-button" onclick="removeReservation('${date}','middag','${res.id}')">Verwijder</button>` : ''}
                 </div>`
               ).join('')
             : 'Vrij';
 
         const avondHtml = avond.length
-            ? avond.map((name, index) =>
+            ? avond.map(res =>
                 `<div class="reservation-line">
-                    <span>${escapeHtml(name)}</span>
-                    <button class="remove-button" onclick="removeReservation('${date}','avond',${index})">Verwijder</button>
+                    <span>${escapeHtml(res.name)}</span>
+                    ${auth ? `<button class="remove-button" onclick="removeReservation('${date}','avond','${res.id}')">Verwijder</button>` : ''}
                 </div>`
               ).join('')
             : 'Vrij';
@@ -136,21 +109,48 @@ function render() {
                 <div class="block">
                     <h3>☀ Middag — 14:00 tot 15:00</h3>
                     <div class="reservation-list">${middagHtml}</div>
-                    <button onclick="reserve('${date}','middag')">Reserveer</button>
+                    ${auth ? `<button onclick="reserve('${date}','middag')">Reserveer</button>` : ''}
                 </div>
                 <div class="block">
                     <h3>🌙 Avond — 18:30 tot 20:00</h3>
                     <div class="reservation-list">${avondHtml}</div>
-                    <button onclick="reserve('${date}','avond')">Reserveer</button>
+                    ${auth ? `<button onclick="reserve('${date}','avond')">Reserveer</button>` : ''}
                 </div>
             </div>`;
     }
 }
 
+async function reserve(date, period) {
+    if (!isAuthenticated()) { alert('Alleen bekijken — login vereist om te reserveren'); return; }
+    const name = prompt('Vul je naam in:');
+    if (!name || !name.trim()) { alert('Ongeldige naam'); return; }
+    const id = generateId();
+    reservations[`${date}-${period}`] = reservations[`${date}-${period}`] || [];
+    reservations[`${date}-${period}`].push({ id, name: name.trim() });
+    render();
+    try { await saveReservations(); } catch (_) {}
+}
+
+async function removeReservation(date, period, id) {
+    if (!isAuthenticated()) { alert('Alleen bekijken — login vereist om te verwijderen'); return; }
+    const arr = reservations[`${date}-${period}`] || [];
+    const idx = arr.findIndex(r => r.id === id);
+    if (idx === -1) return;
+    arr.splice(idx, 1);
+    reservations[`${date}-${period}`] = arr;
+    render();
+    try { await saveReservations(); } catch (_) {}
+}
+
 window.reserve = reserve;
 window.removeReservation = removeReservation;
 
-(async function () {
-    await loadReservations();
-    render();
+(function init() {
+    document.getElementById('openFileBtn').addEventListener('click', openJsonFile);
+    document.getElementById('loadSampleBtn').addEventListener('click', async () => { await loadSample(); render(); });
+    document.getElementById('saveFileBtn').addEventListener('click', saveReservations);
+    document.getElementById('logoutBtn').addEventListener('click', () => { sessionStorage.removeItem('authenticated'); location.reload(); });
+
+    // Try to load sample on first open so viewers see something
+    loadSample().then(render).catch(err => { console.log(err); render(); });
 })();
