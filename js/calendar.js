@@ -1,7 +1,7 @@
 const calendar = document.getElementById("calendar");
 let reservations = {};
-// Publicly shared Drive file (direct download). Replaced by your provided link.
-const REMOTE_JSON_URL = 'https://drive.google.com/uc?export=download&id=1dKzIuYtcQO6AaSGnWlcyEWicemQtVplB';
+// GitHub raw URL - reliable CORS-enabled source
+const REMOTE_JSON_URL = 'https://raw.githubusercontent.com/psclwastaken/ziekenhuisplanner/main/data/reservations.json';
 
 function isAuthenticated() {
     return sessionStorage.getItem('authenticated') === 'true';
