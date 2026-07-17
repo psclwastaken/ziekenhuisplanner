@@ -1,6 +1,9 @@
 const calendar = document.getElementById("calendar");
 let reservations = {};
 
+// Version
+const APP_VERSION = '1.0.0';
+
 // Supabase client
 const SUPABASE_URL = 'https://pmrobschlimpfcbzpqzj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcm9ic2NobGltcGZjYnpwcXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMDk4ODMsImV4cCI6MjA5OTg4NTg4M30.-sjgQsgdNR34xyNiR_tary0Yzo99j3y9tJ1uYR3uWWU';
@@ -160,6 +163,10 @@ window.removeReservation = removeReservation;
 (function init() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.addEventListener('click', () => { sessionStorage.removeItem('authenticated'); location.reload(); });
+
+    // Set version in footer
+    const versionEl = document.getElementById('version');
+    if (versionEl) versionEl.textContent = APP_VERSION;
 
     // Load reservations on first open
     loadReservations();

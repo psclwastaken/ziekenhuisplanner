@@ -140,3 +140,17 @@ border-radius:8px;
 color:red;
 
 }
+
+footer{
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+footer #version{
+  font-weight: bold;
+  color: #666;
+}
