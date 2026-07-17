@@ -29,6 +29,13 @@ localStorage.getItem("reservations")
 ||
 {};
 
+const archivedReservations =
+JSON.parse(
+localStorage.getItem("archivedReservations")
+)
+||
+{};
+
 
 
 function save(){
@@ -37,9 +44,39 @@ localStorage.setItem(
 "reservations",
 JSON.stringify(reservations)
 );
+localStorage.setItem(
+"archivedReservations",
+JSON.stringify(archivedReservations)
+);
 
 }
 
+
+function archivePastDates(){
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    for (let day = 1; day <= 31; day++) {
+        const date = `2026-07-${String(day).padStart(2, '0')}`;
+        const dayDate = new Date(date);
+        dayDate.setHours(0,0,0,0);
+
+        if (dayDate < today) {
+            ["middag", "avond"].forEach(period => {
+                const key = `${date}-${period}`;
+                if (reservations[key] && reservations[key].length) {
+                    if (!archivedReservations[key]) {
+                        archivedReservations[key] = [];
+                    }
+                    archivedReservations[key] = archivedReservations[key].concat(reservations[key]);
+                    delete reservations[key];
+                }
+            });
+        }
+    }
+
+    save();
+}
 
 
 function reserve(date, period){
@@ -100,6 +137,8 @@ render();
 function render(){
 
 
+archivePastDates();
+
 calendar.innerHTML="";
 
 
@@ -111,7 +150,16 @@ day++
 
 
 let date =
-`2026-07-${day}`;
+`2026-07-${String(day).padStart(2, '0')}`;
+
+const today = new Date();
+today.setHours(0,0,0,0);
+const dayDate = new Date(date);
+dayDate.setHours(0,0,0,0);
+
+if(dayDate < today){
+    continue;
+}
 
 
 let middag =
@@ -140,7 +188,7 @@ ${day} juli
 <div class="block">
 
 <h3>
-☀ Middag
+☀ Middag — 14:00 tot 15:00
 </h3>
 
 
@@ -162,7 +210,7 @@ Reserveer
 <div class="block">
 
 <h3>
-🌙 Avond
+🌙 Avond — 18:30 tot 20:00
 </h3>
 
 
