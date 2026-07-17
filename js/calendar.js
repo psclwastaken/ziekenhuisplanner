@@ -134,6 +134,31 @@ render();
 }
 
 
+function removeReservation(date, period, index){
+    const key = `${date}-${period}`;
+    const list = reservations[key];
+    if (!list || index < 0 || index >= list.length) {
+        return;
+    }
+    list.splice(index, 1);
+    if (list.length === 0) {
+        delete reservations[key];
+    }
+    save();
+    render();
+}
+
+
+function escapeHtml(text){
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+
 function render(){
 
 
@@ -162,17 +187,35 @@ if(dayDate < today){
 }
 
 
-let middag =
+const middag =
 reservations[
 `${date}-middag`
 ] || [];
 
 
-let avond =
+const avond =
 reservations[
 `${date}-avond`
 ] || [];
 
+
+const middagHtml = middag.length
+    ? middag.map((name, index) =>
+        `<div class="reservation-line">
+            <span>${escapeHtml(name)}</span>
+            <button class="remove-button" onclick="removeReservation('${date}','middag',${index})">Verwijder</button>
+        </div>`
+      ).join('')
+    : 'Vrij';
+
+const avondHtml = avond.length
+    ? avond.map((name, index) =>
+        `<div class="reservation-line">
+            <span>${escapeHtml(name)}</span>
+            <button class="remove-button" onclick="removeReservation('${date}','avond',${index})">Verwijder</button>
+        </div>`
+      ).join('')
+    : 'Vrij';
 
 calendar.innerHTML += `
 
@@ -192,9 +235,9 @@ ${day} juli
 </h3>
 
 
-<p>
-${middag.join("<br>") || "Vrij"}
-</p>
+<div class="reservation-list">
+${middagHtml}
+</div>
 
 
 <button onclick="reserve('${date}','middag')">
@@ -214,9 +257,9 @@ Reserveer
 </h3>
 
 
-<p>
-${avond.join("<br>") || "Vrij"}
-</p>
+<div class="reservation-list">
+${avondHtml}
+</div>
 
 
 <button onclick="reserve('${date}','avond')">
@@ -242,6 +285,7 @@ Reserveer
 
 
 window.reserve = reserve;
+window.removeReservation = removeReservation;
 
 
 render();
