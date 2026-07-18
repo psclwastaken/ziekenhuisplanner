@@ -1,5 +1,14 @@
-const calendar = document.getElementById("calendar");
+let calendar = null;
 let reservations = {};
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        calendar = document.getElementById("calendar");
+    });
+} else {
+    calendar = document.getElementById("calendar");
+}
 
 // Version
 const APP_VERSION = '1.1.1';
@@ -60,6 +69,11 @@ function escapeHtml(text) {
 }
 
 function render() {
+    if (!calendar) {
+        console.warn('Calendar element not found');
+        return;
+    }
+    
     calendar.innerHTML = '';
 
     const weekdayNames = [
