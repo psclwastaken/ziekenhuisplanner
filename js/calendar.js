@@ -2,7 +2,7 @@ const calendar = document.getElementById("calendar");
 let reservations = {};
 
 // Version
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 // Supabase client
 const SUPABASE_URL = 'https://pmrobschlimpfcbzpqzj.supabase.co';
