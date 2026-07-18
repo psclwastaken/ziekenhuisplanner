@@ -16,15 +16,28 @@ const APP_VERSION = '1.1.1';
 // Supabase client
 const SUPABASE_URL = 'https://pmrobschlimpfcbzpqzj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcm9ic2NobGltcGZjYnpwcXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMDk4ODMsImV4cCI6MjA5OTg4NTg4M30.-sjgQsgdNR34xyNiR_tary0Yzo99j3y9tJ1uYR3uWWU';
-let supabase;
+
+let supabaseClient = null;
 
 (function initSupabase() {
     if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+        );
     } else {
         setTimeout(initSupabase, 100);
     }
 })();
+
+
+// (function initSupabase() {
+//     if (window.supabase) {
+//         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+//     } else {
+//         setTimeout(initSupabase, 100);
+//     }
+// })();
 
 function isAuthenticated() {
     return sessionStorage.getItem('authenticated') === 'true';
@@ -37,7 +50,7 @@ function generateId() {
 
 async function loadReservations() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('reservations')
             .select('*');
         
@@ -144,7 +157,7 @@ async function reserve(date, period) {
     if (!name || !name.trim()) { alert('Ongeldige naam'); return; }
     
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('reservations')
             .insert([{
                 date,
@@ -165,7 +178,7 @@ async function removeReservation(date, period, id) {
     if (!isAuthenticated()) { alert('Alleen bekijken — login vereist om te verwijderen'); return; }
     
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('reservations')
             .delete()
             .eq('id', id);
