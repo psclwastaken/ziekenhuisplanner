@@ -7,7 +7,15 @@ const APP_VERSION = '1.1.0';
 // Supabase client
 const SUPABASE_URL = 'https://pmrobschlimpfcbzpqzj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcm9ic2NobGltcGZjYnpwcXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMDk4ODMsImV4cCI6MjA5OTg4NTg4M30.-sjgQsgdNR34xyNiR_tary0Yzo99j3y9tJ1uYR3uWWU';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase;
+
+(function initSupabase() {
+    if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+        setTimeout(initSupabase, 100);
+    }
+})();
 
 function isAuthenticated() {
     return sessionStorage.getItem('authenticated') === 'true';
